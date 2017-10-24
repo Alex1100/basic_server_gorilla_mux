@@ -7,6 +7,7 @@ import (
 	"fmt"
 	gmux "github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +16,15 @@ import (
 
 type Page struct {
 	Books []Book
+}
+
+type LoginPage struct {
+	Error string
+}
+
+type User struct {
+	Username string
+	Secret   []byte
 }
 
 type SearchResult struct {
@@ -92,6 +102,56 @@ type Routes struct {
 
 func NewRoutes(db *sql.DB) *Routes {
 	return &Routes{db: db}
+}
+
+func (database *Routes) Login(w http.ResponseWriter, r *http.Request) {
+	var p LoginPage
+
+	if r.FormValue("register") != "" {
+		secret, _ := bcrypt.GenerateFromPassword([]byte(r.FormValue("password")), bcrypt.DefaultCost)
+
+		user := User{r.FormValue("username"), secret}
+
+		fmt.Printf("%s", user)
+
+		if _, err := database.db.Exec("INSERT INTO users (username, secret) values($1, $2)", r.FormValue("username"), user.Secret); err != nil {
+			fmt.Printf("ERROR REGISTERING IS: %s", err)
+			p.Error = err.Error()
+		} else {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
+	} else if r.FormValue("login") != "" {
+		var (
+			identification int64
+			email          string
+			password_in_db string
+		)
+
+		err := database.db.QueryRow("SELECT * FROM users WHERE username = $1", r.FormValue("username")).Scan(&identification, &email, &password_in_db)
+
+		if err != nil {
+			fmt.Printf("ERROR AFTER LOGIN IS: %s", err)
+			p.Error = err.Error()
+		} else {
+			if err = bcrypt.CompareHashAndPassword([]byte(password_in_db), []byte(r.FormValue("password"))); err != nil {
+				p.Error = err.Error()
+			} else {
+				http.Redirect(w, r, "/", http.StatusFound)
+				return
+			}
+
+		}
+	}
+
+	templates := template.Must(template.ParseFiles("templates/login.html"))
+
+	err := templates.Execute(w, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (database *Routes) RootRoute(w http.ResponseWriter, r *http.Request) {

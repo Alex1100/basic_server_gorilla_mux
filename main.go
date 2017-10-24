@@ -14,7 +14,7 @@ const (
 	host     = "elmer.db.elephantsql.com"
 	port     = 5432
 	user     = "htldhvag"
-	password = ""
+	password = "MSUFGSPXBrWRGr0ZIp-v8cj7xB0zxHO6"
 	dbname   = "htldhvag"
 )
 
@@ -38,6 +38,7 @@ func main() {
 
 	routes := routers.NewRoutes(db)
 
+	mux.HandleFunc("/login", routes.Login).Methods("GET")
 	mux.HandleFunc("/", routes.RootRoute).Methods("GET")
 	mux.HandleFunc("/search", routes.SearchBooks).Methods("POST")
 	mux.HandleFunc("/books", routes.SortBooks).Methods("GET")
