@@ -36,7 +36,7 @@ const (
 	host     = "elmer.db.elephantsql.com"
 	port     = 5432
 	user     = "htldhvag"
-	password = "-pyfgJeIciBLeSujY8BkJf9QzfmABR8q"
+	password = ""
 	dbname   = "htldhvag"
 )
 
